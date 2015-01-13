@@ -1,0 +1,10 @@
+#!/bin/bash
+
+F="$1"
+
+if [ ! -e "$F" ]; then
+	echo "Error: no file: $F"
+	exit 1;
+fi
+
+(echo -ne '\xEF\xBB\xBF' && iconv -t utf-16 | iconv -f utf-16 -t utf-8) <"$F" >__bomtemp && mv __bomtemp "$F"
