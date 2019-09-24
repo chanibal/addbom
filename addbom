@@ -1,10 +1,51 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-F="$1"
+set -e
 
-if [ ! -e "$F" ]; then
-	echo "Error: no file: $F"
+if [[ $# == 1 ]]; then
+	INPUT="$1"
+	OUTPUT="$(mktemp)"
+	SUCCESS=0
+	function commit
+	{
+		if [[ "$SUCCESS" == "1" ]]; then
+			mv "$OUTPUT" "$INPUT"
+		fi
+		rm -f "$OUTPUT"
+	}
+	trap commit EXIT
+	FAIL_IF_OUTPUT_EXISTS=0
+elif [[ $# == 2 ]]; then
+	INPUT="$1"
+	OUTPUT="$2"
+	FAIL_IF_OUTPUT_EXISTS=1
+else
+cat << ENDSYNTAX
+Adds a byte order mark to a file and converts to UTF-8
+https://gist.github.com/chanibal/397c39d59ede8682ce13
+
+Syntax:
+addbom file_to_add_byte_order_mark
+addbom input_file output_file
+ENDSYNTAX
+	exit 0
+fi
+
+if [[ ! -e "$INPUT" ]]; then
+	echo "Error: no file: $INPUT"
 	exit 1;
 fi
 
-(echo -ne '\xEF\xBB\xBF' && iconv -t utf-16 | iconv -f utf-16 -t utf-8) <"$F" >__bomtemp && mv __bomtemp "$F"
+if [[ -e "$OUTPUT" && $FAIL_IF_OUTPUT_EXISTS == "1" ]]; then
+	echo "Error: output file already exists: $OUTPUT"
+	exit 3
+fi
+
+read -n 3 MAGIC <"$INPUT"
+if [[ "$MAGIC" == $(echo -ne '\xEF\xBB\xBF') ]]; then
+	echo "Error: $INPUT already has bom"
+	exit 2
+fi
+
+(echo -ne '\xEF\xBB\xBF' && iconv -t utf-32 | iconv -f utf-32 -t utf-8) <"$INPUT" >"$OUTPUT"
+SUCCESS=1
