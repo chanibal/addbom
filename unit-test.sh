@@ -2,6 +2,10 @@
 
 set -e
 
+if [[ "$(uname)" != "Darwin" ]]; then
+    echo "Warning: tests designed to work on OSX (BSD), can fail on GNU"
+fi
+
 function assert_size
 {
     if [[ $# != 2 ]]; then echo "Must have 2 arguments"; exit 1; fi
